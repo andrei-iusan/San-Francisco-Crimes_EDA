@@ -1,0 +1,353 @@
+---
+title: San Francisco Crimes Investigation 
+author: "Andrei Iusan"
+output: html_document
+---
+
+*Exploratory Data Analysis*
+*of [The San Francisco Crimes dataset](https://www.kaggle.com/c/sf-crime).*
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+```
+
+```{r loading data, echo=FALSE}
+# Load the Data
+crimes <- read.csv("train.csv", header = TRUE, quote = "\"")
+```
+
+# Overview of the data
+First I'll look at the dimensions of the data-set:
+```{r dimensions, echo=FALSE}
+dim(crimes)
+```
+There are `r nrow(crimes)` observations of `r ncol(crimes)` features.
+Those features are:
+
+```{r columns, echo=FALSE}
+colnames(crimes)
+```
+
+Now I'll print a summary of the data-set:
+
+```{r summary, echo=FALSE}
+summary(crimes)
+```
+
+This summary offers some insight, but not an overall picture of the data set.
+There are many categories for each feature, so we can only see the categories
+with the most elements. For instance, we can instantly see that the most common
+crime is theft, from description we can see that the most common is "GRAND
+THEFT FROM LOCKED AUTO". Southern district seems to be the district with the
+highest criminal activity, and there is an unusually high number of crimes at
+the 800 Block of BRYANT ST. Also, there is an unusually high number of crimes
+on 1st of January, especially on 2011 and 2006. I will explore those insights
+in more detail through visualizations.
+
+Let's also have a look at a few entries in this data set:
+
+```{r first points, echo=FALSE}
+head(crimes)
+```
+
+Interestingly, it seems that the first two entries refer to the same event.
+There are two entries from the same time and place, but with different
+description, and different categories. I'll have to perform some data
+aggregation to find out how many events are in this data-set.
+
+I'll consider that multiple entries in this data set describe the same event if
+the Date and Location are the same. Given this rule, how many events are in our
+data set?
+
+```{r number of crimes, echo=FALSE}
+n_crimes <- nrow(unique(subset(crimes, select = c('Dates', 'X', 'Y'))))
+n_crimes
+```
+
+# Univariate Analysis
+
+Let's explore some of those variables in more detail.
+
+### Main features of interest
+
+The most interesting variables are **Category** and **Resolution**. 
+All other variables describe the context of the crime, but most important 
+is the crime itself, and the resolution. In a sense those are the dependent
+variables. I would like to describe those variables in terms of distribution
+in time, space, in order to see trends of criminal behaviour and police
+behaviour. 
+
+Have certain crimes became more common than others?
+Did the SFPD changed its reaction to certain crimes? 
+(By being more severe or more lenient to certain crimes)
+
+```{r Reorder factors, echo=FALSE}
+# reordering factors for Category, PdDistrict, Resolution and DayOfWeek
+# for Category, PdDistrict and Resolution, I want to sort based on the count 
+# of each variable, in order to easily see difference of values that are close.
+crimes[c("Category", "PdDistrict", "Resolution")] <- 
+  lapply(subset(crimes, 
+                select = c("Category", "PdDistrict", "Resolution")), 
+         function(x){
+           factor(x, levels = names(sort(table(x))))
+         })
+# For DayOfWeek I would like the plot to show days from Monday to Sunday
+crimes$DayOfWeek <- factor(crimes$DayOfWeek, levels = c("Monday",
+                                                        "Tuesday",
+                                                        "Wednesday",
+                                                        "Thursday",
+                                                        "Friday",
+                                                        "Saturday",
+                                                        "Sunday"))
+```
+
+The number of crimes in each category:
+
+```{r Crimes Categories, echo=FALSE}
+# Plotting Categories
+ggplot(data = crimes, aes(x = Category)) + 
+  geom_bar() + 
+  coord_flip()
+```
+
+The most common crime is theft, followed by *Other Offenses* and
+*Non-Criminal*. Those are vague general categories that I will investigate
+further, and possibly brake those categories down to other categories.
+The next most common specific crimes are *Assault*, *Drug/Narcotic* and
+*Vehicle Theft*. I think *Vechicle Theft* could be a sub-category of
+*Larceny/Theft*.
+
+Next I explore the distribution of resolutions:
+
+```{r Crime Resolutions, echo=FALSE}
+ggplot(data = crimes, aes(x = Resolution)) + 
+  geom_bar() + 
+  coord_flip()
+```
+
+I find it interesting that most crimes have no resolution, followed by a 
+high number of arrests. I'll rescale this plot to a logarithmic scale,
+so we can better see the variability among the categories with 
+low number of cases:
+
+```{r Crime Resolutions logarithmic, echo=FALSE}
+ggplot(data = crimes, aes(x = Resolution)) + 
+  geom_bar() + 
+  coord_flip() +
+  scale_y_log10()
+```
+
+Crimes by day of week:
+
+```{r Crimes Day of Week, echo=FALSE}
+ggplot(data = crimes, aes(x = DayOfWeek)) + 
+  geom_bar() 
+```
+
+There doesn't seem to be a noticeble difference among days of week.
+
+Crimes by district:
+
+```{r Crimes District}
+ggplot(data = crimes, aes(x = PdDistrict)) + 
+  geom_bar() + 
+  coord_flip()
+```
+
+The differences among different districts are noticeble, there is
+wide variability among districts with respect to the criminal activity.
+
+Those plots provide an overview of all the data, but I would like to see more
+specific trends, like what crimes are most likely to be resolved, or how the
+criminal activity varies across the time, and across different areas of the
+city.
+
+### Crimes over time
+
+How do crimes vary across time? Is there a general increasing or decreasing
+trend? How do they vary by month? Or by hour? Are there fluctuating patterns?
+We saw that by day of week there doesn't seem to be a pattern.
+
+To answer the question regarding the trend, I will count all crimes for each
+month.
+
+```{r All Crimes Over Time, echo=FALSE}
+crimes_by_month <- crimes %>%
+  transmute(year = year(Dates), month = month(Dates)) %>%
+  group_by(year, month) %>%
+  summarise(count = n()) %>%
+  mutate(dt = as.Date(paste('01', 
+                            as.character(month), 
+                            as.character(year), 
+                            sep = '-'),
+                      format = "%d-%m-%Y"))
+
+ggplot(crimes_by_month, aes(x = dt, y = count)) + geom_line() +
+  xlab("Date")
+# ggplot(count(crimes, Category, month),
+#        aes(x = month, y = n)) +
+#   geom_freqpoly()
+```
+
+There seems to be a yearly pattern. We can better observe this if we plot all yearly periods on top of each other.
+
+```{r All Crimes Yearly Pattern, echo=FALSE}
+# I have to remove the data from May 2015 for this particular plot,
+# as it is an outlier representing incomplete data. The following code 
+# gives us the last day recorded in May 2015:
+# max(crimes %>%
+#     filter(year(Dates) == 2015, month(Dates) == 5) %>% 
+#     transmute(day(Dates)))
+# 
+# result is 13, therefore the month of May 2015 is not complete, 
+# and would pull the mean down.
+
+crimes_by_month <- crimes_by_month[1:nrow(crimes_by_month)-1, ]
+
+ggplot(crimes_by_month) +
+  geom_line( aes(x = month, y = count, group = year, color = year, colorspaces = 'hue'), alpha = 0.5) +
+  xlab("Month") +
+  scale_x_discrete() +
+  geom_line(data = crimes_by_month %>%
+                group_by(month) %>%
+                summarise(avg = mean(count)),
+            aes(x = month, y = avg),
+            color = 'red',
+            size = 2)
+
+```
+
+The red line represents the mean of monthly crimes from all years. The thin shaded lines represent the number of crimes for each year. There are two peaks, in May and October.
+
+How about hourly trends? I suspect there should be a lot of variability among hours. I will average over all days like in the previous plot, but I show only the average line.
+
+```{r Hourly Crimes mean, echo=FALSE}
+crimes_by_hour <- crimes %>%
+  mutate(hour = hour(Dates)) %>%
+  group_by(hour, Dates) %>%
+  summarise(hourly_crimes = n())
+
+crimes_hourly_mean <- crimes_by_hour %>%
+  group_by(hour) %>%
+  summarise(hourly_avg = mean(hourly_crimes))
+
+ggplot(crimes_hourly_mean, aes(x = hour, y = hourly_avg)) + 
+  geom_line() +
+  scale_x_discrete()
+```
+
+Interesting pattern, not a lot of crimes happen during the night, but the highest number of them happen around midnight. Is it safer to walk around at 3 or 4 in the morning than at midday? To answer this question I will have to plot this again but with data filtered, to exclude crimes that are not physically harming, like fraud, forgery, etc.
+
+I'll try to plot the all the points to visulize the variability as well, not only the mean. I'll plot all crimes counted for each hour, and a density plot:
+
+```{r Hourly Crimes All, echo=FALSE}
+ggplot(crimes_by_hour, aes(x=hour, y=hourly_crimes)) + 
+  geom_jitter(alpha = 0.1) + 
+  scale_x_discrete()
+```
+
+Not conclusive, I'll limit the y axis to (0, 20) and superimpose the average as a red line.
+
+```{r Houely Crimes Final, echo=FALSE}
+ggplot(crimes_by_hour, aes(x=hour, y=hourly_crimes)) + 
+  geom_jitter(alpha = 0.1) + 
+  geom_line(data = crimes_hourly_mean, 
+            aes(x = hour, y = hourly_avg), 
+            color = 'red') + 
+  ylim(c(0, 20)) +
+  scale_x_discrete()
+```
+
+It looks good, but still massively overplotted.
+
+More variables, digging deeper into details of the data.
+
+I'll explore a couple of the most common crimes. I'll start with the most common: Larceny/Theft
+
+### Theft
+
+I'd like to see the descriptions of all theft entries:
+
+```{r Theft, echo=FALSE}
+Theft <- crimes$Category == "LARCENY/THEFT"
+summary(droplevels(crimes[Theft,]$Descript))
+```
+
+So we have entries like "Grand Theft from Locked Auto". Most entries seem to be theft of items, but there are also entries containing theft of property, or services.
+
+For a complete picture, the data needs to be cleaned a little. I'll have a
+look at the categories Vehicle Theft, Burglary, Robbery, Fraud, Secondary
+Codes, Stolen Property, Embezzlement, Bad Checks and Extortion. I will
+try to include all in two main theft categories: Phisical/Forced, and
+Information/Property/Fraud.
+
+### What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
+
+### Did you create any new variables from existing variables in the dataset?
+
+### Of the features you investigated, were there any unusual distributions? Did you perform any operations on the data to tidy, adjust, or change the form of the data? If so, why did you do this?
+
+
+
+# Bivariate Plots Section
+```{r echo=FALSE, Bivariate_Plots}
+
+```
+
+# Bivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the investigation. How did the feature(s) of interest vary with other features in the dataset?
+
+### Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
+
+### What was the strongest relationship you found?
+
+
+
+
+# Multivariate Plots Section
+
+```{r echo=FALSE, Multivariate_Plots}
+
+```
+
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the investigation. Were there features that strengthened each other in terms of looking at your feature(s) of interest?
+
+### Were there any interesting or surprising interactions between features?
+
+### OPTIONAL: Did you create any models with your dataset? Discuss the strengths and limitations of your model.
+
+------
+
+# Final Plots and Summary
+
+### Plot One
+```{r echo=FALSE, Plot_One}
+
+```
+
+### Description One
+
+
+### Plot Two
+```{r echo=FALSE, Plot_Two}
+
+```
+
+### Description Two
+
+
+### Plot Three
+```{r echo=FALSE, Plot_Three}
+
+```
+
+### Description Three
+
+------
+
+# Reflection
