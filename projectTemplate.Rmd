@@ -18,7 +18,7 @@ library(lubridate)
 crimes <- read.csv("train.csv", header = TRUE, quote = "\"")
 ```
 
-# Overview of the data
+# Overview of the Data
 First I'll look at the dimensions of the data-set:
 ```{r dimensions, echo=FALSE}
 dim(crimes)
@@ -114,7 +114,7 @@ ggplot(data = crimes, aes(x = Category)) +
 
 The most common crime is theft, followed by *Other Offenses* and
 *Non-Criminal*. Those are vague general categories that I will investigate
-further, and possibly brake those categories down to other categories.
+further, and possibly move some events to other categories.
 The next most common specific crimes are *Assault*, *Drug/Narcotic* and
 *Vehicle Theft*. I think *Vechicle Theft* could be a sub-category of
 *Larceny/Theft*.
@@ -146,7 +146,7 @@ ggplot(data = crimes, aes(x = DayOfWeek)) +
   geom_bar() 
 ```
 
-There doesn't seem to be a noticeble difference among days of week.
+There doesn't seem to be a noticeable difference among days of week.
 
 Crimes by district:
 
@@ -156,7 +156,7 @@ ggplot(data = crimes, aes(x = PdDistrict)) +
   coord_flip()
 ```
 
-The differences among different districts are noticeble, there is
+The differences among different districts are noticeable, there is
 wide variability among districts with respect to the criminal activity.
 
 Those plots provide an overview of all the data, but I would like to see more
@@ -170,8 +170,7 @@ How do crimes vary across time? Is there a general increasing or decreasing
 trend? How do they vary by month? Or by hour? Are there fluctuating patterns?
 We saw that by day of week there doesn't seem to be a pattern.
 
-To answer the question regarding the trend, I will count all crimes for each
-month.
+To answer the question regarding the trend, I will plot the number of crimes for each month.
 
 ```{r All Crimes Over Time, echo=FALSE}
 crimes_by_month <- crimes %>%
@@ -221,7 +220,7 @@ ggplot(crimes_by_month) +
 
 The red line represents the mean of monthly crimes from all years. The thin shaded lines represent the number of crimes for each year. There are two peaks, in May and October.
 
-How about hourly trends? I suspect there should be a lot of variability among hours. I will average over all days like in the previous plot, but I show only the average line.
+How about hourly trends? I suspect there should be a lot of variability among hours. I will calculate the average over all days like in the previous plot, but I show only the average line.
 
 ```{r Hourly Crimes mean, echo=FALSE}
 crimes_by_hour <- crimes %>%
@@ -262,7 +261,7 @@ ggplot(crimes_by_hour, aes(x=hour, y=hourly_crimes)) +
 
 It looks good, but still massively overplotted.
 
-More variables, digging deeper into details of the data.
+### More variables, digging deeper into details of the data.
 
 I'll explore a couple of the most common crimes. I'll start with the most common: Larceny/Theft
 
@@ -272,16 +271,10 @@ I'd like to see the descriptions of all theft entries:
 
 ```{r Theft, echo=FALSE}
 Theft <- crimes$Category == "LARCENY/THEFT"
-summary(droplevels(crimes[Theft,]$Descript))
+unique(droplevels(crimes[Theft,]$Descript))
 ```
 
-So we have entries like "Grand Theft from Locked Auto". Most entries seem to be theft of items, but there are also entries containing theft of property, or services.
 
-For a complete picture, the data needs to be cleaned a little. I'll have a
-look at the categories Vehicle Theft, Burglary, Robbery, Fraud, Secondary
-Codes, Stolen Property, Embezzlement, Bad Checks and Extortion. I will
-try to include all in two main theft categories: Phisical/Forced, and
-Information/Property/Fraud.
 
 ### What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
 
