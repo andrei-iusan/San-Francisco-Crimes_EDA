@@ -23,11 +23,18 @@ First I'll look at the dimensions of the data-set:
 ```{r dimensions, echo=FALSE}
 dim(crimes)
 ```
+
 There are `r nrow(crimes)` observations of `r ncol(crimes)` features.
 Those features are:
 
 ```{r columns, echo=FALSE}
 colnames(crimes)
+```
+
+I'd like to see the structure of the data:
+
+```{r Structure, echo=FALSE}
+str(crimes)
 ```
 
 Now I'll print a summary of the data-set:
@@ -232,22 +239,16 @@ crimes_hourly_mean <- crimes_by_hour %>%
   group_by(hour) %>%
   summarise(hourly_avg = mean(hourly_crimes))
 
-ggplot(crimes_hourly_mean, aes(x = hour, y = hourly_avg)) + 
+ggplot(crimes_hourly_mean, aes(x = hour, y = hourly_avg)) +
   geom_line() +
   scale_x_discrete()
 ```
 
 Interesting pattern, not a lot of crimes happen during the night, but the highest number of them happen around midnight. Is it safer to walk around at 3 or 4 in the morning than at midday? To answer this question I will have to plot this again but with data filtered, to exclude crimes that are not physically harming, like fraud, forgery, etc.
 
-I'll try to plot the all the points to visulize the variability as well, not only the mean. I'll plot all crimes counted for each hour, and a density plot:
-
-```{r Hourly Crimes All, echo=FALSE}
-ggplot(crimes_by_hour, aes(x=hour, y=hourly_crimes)) + 
-  geom_jitter(alpha = 0.1) + 
-  scale_x_discrete()
-```
-
-Not conclusive, I'll limit the y axis to (0, 20) and superimpose the average as a red line.
+I'll try to plot the all the points to visulize the variability as well, not
+only the mean. I'll plot all crimes counted for each hour, and a density plot.
+I'll limit the y axis to (0, 20) and superimpose the average as a red line.
 
 ```{r Houely Crimes Final, echo=FALSE}
 ggplot(crimes_by_hour, aes(x=hour, y=hourly_crimes)) + 
@@ -258,8 +259,6 @@ ggplot(crimes_by_hour, aes(x=hour, y=hourly_crimes)) +
   ylim(c(0, 20)) +
   scale_x_discrete()
 ```
-
-It looks good, but still massively overplotted.
 
 ### More variables, digging deeper into details of the data.
 
@@ -273,6 +272,17 @@ I'd like to see the descriptions of all theft entries:
 Theft <- crimes$Category == "LARCENY/THEFT"
 unique(droplevels(crimes[Theft,]$Descript))
 ```
+
+# TO DO:
+ **- as.POSIXct(Dates)
+ ** box plots of crimes by hour
+ - show resolution / no resolution by category
+ - relationship between category and pdDistrict (facet, top 5, maybe time-data)
+ - categories on map of city
+ - resolution percentage by district (over time?)
+ - category vs resolution (heat map: category on one axis, resolution on another, squares in the grid indicate how frequently the two appear together)
+ 
+
 
 
 
