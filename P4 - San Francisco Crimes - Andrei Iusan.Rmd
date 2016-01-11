@@ -5,7 +5,7 @@ date: "January, 2016"
 output: html_document
 ---
 
-```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+```{r setup, echo=FALSE, warnings=FALSE, message=FALSE, warning=FALSE}
 library(ggplot2)
 library(ggmap)
 library(dplyr)
@@ -15,6 +15,7 @@ library(lubridate)
 # Load the Data
 crimes <- read.csv("SFPD_Incidents_-_from_1_January_2003.csv",
                    header = TRUE, quote = "\"")
+options(scipen=1000)
 ```
 
 # About the Data
@@ -22,13 +23,13 @@ crimes <- read.csv("SFPD_Incidents_-_from_1_January_2003.csv",
 Data on San Francisco Crimes is made public as part of San Francisco Open Data
 project. The data is available for download at the following link:
 [https://data.sfgov.org/Public-Safety/SFPD-Incidents-from-1-January-2003/tmnf-yvry](https://data.sfgov.org/Public-Safety/SFPD-Incidents-from-1-January-2003/tmnf-yvry).
-The data is updated periodicaly. My data set contains entries up to
+The data is updated periodically. My data set contains entries up to
 14 December 2015.
 
 I downloaded the data as a csv file. The data without any processing has the
 following structure:
 
-```{r Structure, echo=FALSE}
+```{r Structure, echo=FALSE, warnings=FALSE}
 str(crimes)
 ```
 
@@ -37,22 +38,24 @@ Also, PdId is not useful here as it's just an ID. I will keep IncidentNum
 because there are situations where there are multiple entries in the data set
 for the same event. This variable should be used when counting the number of
 incidents, as it provides more accurate results than counting the rows. I will
-also convert Date and Time to a Date-Time format.
+also convert Date and Time columns to a Date-Time format.
 
-```{r preprocessing, echo=FALSE}
+```{r preprocessing, echo=FALSE, warnings=FALSE}
 crimes$DateTime <- as.POSIXct(hms(paste(crimes$Time, ":00", sep = "")) +
   as.Date(crimes$Date, format="%m/%d/%Y"))
 crimes <- select(crimes, -c(Location, PdId, Date, Time))
 
 # Useful function, real number of crimes.
 no_crimes <- function(crime_data){
-  unique(crime_data$IncidntNum)
+  length(unique(crime_data$IncidntNum))
 }
+
+
 ```
 
 Now the structure of the data is:
 
-```{r New Structure, echo=FALSE}
+```{r New Structure, echo=FALSE, warnings=FALSE}
 str(crimes)
 ```
 
@@ -60,7 +63,7 @@ str(crimes)
 
 I'll print a summary of all the columns.
 
-```{r summary, echo=FALSE}
+```{r summary, echo=FALSE, warnings=FALSE}
 summary(crimes)
 ```
 
@@ -89,7 +92,7 @@ behavior.
 Have certain crimes became more common than others?
 Did the SFPD solved more or less crimes at different periods of time?
 
-```{r Reorder factors, echo=FALSE}
+```{r Reorder factors, echo=FALSE, warnings=FALSE}
 # reordering factors for Category, PdDistrict, Resolution and DayOfWeek
 # for Category, PdDistrict and Resolution, I want to sort based on the count
 # of each variable, in order to easily see difference of values that are close.
@@ -118,12 +121,13 @@ crimes$DayOfWeek <- factor(crimes$DayOfWeek, levels = c("Monday",
 
 The number of crimes in each category:
 
-```{r Crimes Categories, echo=FALSE}
+```{r Crimes Categories, echo=FALSE, warnings=FALSE}
 # I use coord_flip for horizontal bars
 
 ggplot(data = crimes, aes(x = Category)) +
   geom_bar() +
-  coord_flip()
+  coord_flip() +
+  ggtitle("Category Distribution")
 ```
 
 The most common crime is theft, followed by *Other Offenses* and
@@ -134,30 +138,33 @@ specific crimes are *Assault*, *Vehicle Theft* and *Drug/Narcotic*.
 
 I'll explore the distribution of resolutions:
 
-```{r Crime Resolutions, echo=FALSE}
+```{r Crime Resolutions, echo=FALSE, warnings=FALSE}
 ggplot(data = crimes, aes(x = Resolution)) +
   geom_bar() +
-  coord_flip()
+  coord_flip() +
+  ggtitle("Resolutions Distribution")
 ```
 
 I find it interesting that most crimes have no resolution, followed by a high
 number of arrests. I'll rescale this plot to a logarithmic scale, so we can
 better see the variability among the categories with low number of cases:
 
-```{r Crime Resolutions logarithmic, echo=FALSE}
+```{r Crime Resolutions logarithmic, echo=FALSE, warnings=FALSE}
 ggplot(data = crimes, aes(x = Resolution)) +
   geom_bar() +
   coord_flip() +
-  scale_y_log10()
+  scale_y_log10() +
+  ggtitle("Resolutions Distributions")
 ```
 
 ## Day of week
 
 Crimes by day of week:
 
-```{r Crimes Day of Week, echo=FALSE}
+```{r Crimes Day of Week, echo=FALSE, warnings=FALSE}
 ggplot(data = crimes, aes(x = DayOfWeek)) +
-  geom_bar()
+  geom_bar() +
+  ggtitle("Number of Crimes by Day of Week")
 ```
 
 There doesn't seem to be noticeable variability among days of week.
@@ -166,10 +173,11 @@ There doesn't seem to be noticeable variability among days of week.
 
 Crimes by district:
 
-```{r Crimes District}
+```{r Crimes District, echo=FALSE, warnings=FALSE}
 ggplot(data = crimes, aes(x = PdDistrict)) +
   geom_bar() +
-  coord_flip()
+  coord_flip() +
+  ggtitle("Number of Crimes by District")
 ```
 
 The differences among different districts are noticeable, there is wide
@@ -189,7 +197,7 @@ We saw that by day of week there doesn't seem to be a pattern.
 To answer the question regarding the trend, I will plot the number of crimes for
 each month.
 
-```{r All Crimes Over Time, echo=FALSE}
+```{r All Crimes Over Time, echo=FALSE, warnings=FALSE}
 # I need to process the data first
 
 crimes_by_month <- crimes %>%
@@ -210,13 +218,14 @@ crimes_by_month <- crimes %>%
 
 crimes_by_month <- crimes_by_month[1:nrow(crimes_by_month)-1, ]
 ggplot(crimes_by_month, aes(x = dt, y = count)) + geom_line() +
-  xlab("Date")
+  xlab("Date") +
+  ggtitle("Monthly crimes")
 ```
 
 There seems to be a yearly pattern. We can better observe this if we plot all
 yearly periods on top of each other.
 
-```{r All Crimes Yearly Pattern, echo=FALSE}
+```{r All Crimes Yearly Pattern, echo=FALSE, warnings=FALSE}
 ggplot(crimes_by_month) +
   geom_line( aes(x = month, y = count, group = year), alpha = 0.5) +
   xlab("Month") +
@@ -226,7 +235,8 @@ ggplot(crimes_by_month) +
                 summarise(avg = mean(count)),
             aes(x = month, y = avg),
             color = 'red',
-            size = 2)
+            size = 2) +
+  ggtitle("Average yearly crimes")
 ```
 
 The red line represents the mean of monthly crimes from all years. The thin
@@ -238,7 +248,7 @@ hours. I'll plot all the points in order to visualize the variability as well
 as the mean. I'll limit the y axis to (0, 20) and superimpose the average as a
 red line.
 
-```{r Houely Crimes, echo=FALSE}
+```{r Houely Crimes, echo=FALSE, warnings=FALSE}
 crimes_by_hour <- crimes %>%
   mutate(hour = hour(DateTime)) %>%
   group_by(hour, DateTime) %>%
@@ -254,7 +264,8 @@ ggplot(crimes_by_hour, aes(x=hour, y=hourly_crimes)) +
             aes(x = hour, y = hourly_avg),
             color = 'red') +
   ylim(c(0, 20)) +
-  scale_x_discrete()
+  scale_x_discrete() +
+  ggtitle("Average hourly crimes")
 ```
 
 Interesting pattern, not a lot of crimes happen during the night, but the
@@ -265,7 +276,7 @@ highest number of them happen around midnight.
 I'll compute the average daily frequency of crimes for addresses, and print the
 top 10 addresses:
 
-```{r Addresses frequency and map, echo=FALSE}
+```{r Addresses frequency and map, echo=FALSE, warnings=FALSE}
 no_days = round(max(crimes$DateTime) - min(crimes$DateTime))
 top_addresses <- crimes %>%
   group_by(Address) %>%
@@ -285,16 +296,20 @@ address of the San Francisco Police Officers Association
 
 Now I'd like to view the top 100 addresses on the map:
 
-```{r Map of Most dangerous addresses, echo=FALSE}
+```{r Map of Most dangerous addresses, echo=FALSE, warnings=FALSE}
 # I need to get the map first, this SFMap will be used later on as well
 
 SFMap <- get_map(location = c(lon = mean(crimes$X), lat = mean(crimes$Y)),
                  zoom = 12, maptype = "roadmap", color = 'bw')
 
+map_theme <- theme(axis.text.x = element_blank(), 
+                   axis.text.y = element_blank(),
+                   axis.ticks = element_blank())
 ggmap(SFMap) +
   geom_point(aes(X,Y, color = 'red'), data = head(top_addresses, 100)) +
   theme(legend.position = "none") +
-  ggtitle("Top 100 most dangerous addresses")
+  ggtitle("Top 100 most dangerous addresses") +
+  map_theme
 ```
 
 Now I'm surprised that most of them are in Tenderloin, not in Southern, as we
@@ -303,15 +318,16 @@ therefore when we account for the density of population, this makes sense.
 
 ### Districts on map
 
-I'd like to see the districts, as they are recorded in this data set.
+I'd like to see the districts, as they are recorded in this data set. I'll plot all crimes on the map, and color them according to the districts.
 
-```{r Districts on map, echo=FALSE}
+```{r Districts on map, echo=FALSE, warnings=FALSE}
 ggmap(SFMap) +
   geom_point(data=crimes, aes(X, Y, color=factor(PdDistrict)), alpha=0.05) +
   guides(color = guide_legend(override.aes = list(alpha=1.0, size=6.0),
                                title="PdDistrict")) +
      scale_colour_brewer(type="qual", palette="Paired") +
-     ggtitle("Districts")
+     ggtitle("Districts") +
+  map_theme
 ```
 
 We can see here that Tenderloin is the smallest district, but it is in a high
@@ -322,7 +338,7 @@ district has the most crimes recorded.
 
 I'd like to see what's in the Descript variable.
 
-```{r Descriptions plot, echo=FALSE}
+```{r Descriptions plot, echo=FALSE, warnings=FALSE}
 # I'll take the most common 30 descriptions and make a bar plot
 
 descripts <- crimes %>%
@@ -350,26 +366,33 @@ subcategories.
 
 I'd like to see which categories are most likely to be resolved.
 
-```{r resolution / no resolution, echo=FALSE}
+```{r resolution / no resolution, echo=FALSE, warnings=FALSE}
+# I'll create a stacked bar plot, whith two stacks for yes and no
 resol_percentage <- crimes %>%
-  group_by(Category, Solved = ifelse(Resolution != "NONE","yes","no")) %>%
+  group_by(Category, 
+           Solved = factor(ifelse(Resolution != "NONE","yes","no"),
+                           levels = c("yes","no"))) %>%
   summarise(cnt = n()) %>%
   mutate(perc = cnt/sum(cnt))
-
 df <- filter(resol_percentage, Solved == "yes")
 bar_order <- df[order(df$perc),]$Category
-ggplot(data = resol_percentage, aes(x = Category, y = perc, fill = Solved)) +
-  geom_bar(stat = "identity") +
+ggplot(data = resol_percentage, 
+       aes(x = Category, 
+           y = perc,
+           fill = Solved)) +
+  geom_bar(stat = "identity", position='fill') +
   scale_x_discrete(limits = bar_order) +
+  scale_fill_manual(values = c('#13697D','#CA1A1A')) +
   ggtitle("Percentage of solved crimes by Category") +
-  coord_flip()
+  coord_flip() +
+  ylab("Percentage")
 ```
 
 This plot shows the percentage of solved crimes by category. But it doesn't
 take into account the number of crimes in each category. I will combine this
-plot with the plot with categories.
+plot with the initial plot of categories distribution.
 
-```{r Crimes vs percent of solved, echo=FALSE}
+```{r Crimes vs percent of solved, echo=FALSE, warnings=FALSE}
 # encode percentage as a color gradient
 
 categ_resol <- resol_percentage %>%
@@ -382,15 +405,16 @@ categ_resol <- resol_percentage %>%
 ggplot(data = categ_resol, aes(x = Category, y = cnt, fill = Percent)) +
   scale_fill_gradient(limits = c(0,100), low = "red") +
   geom_bar(stat = "identity") +
-  ggtitle("Crime Categories by Percentage of Solved Crimes") +
+  ggtitle("Crime Categories and Percentage of Solved Crimes") +
   ylab("Count") +
   coord_flip()
 ```
 
 This shows the relation between Category and crimes that had any resolution at
-all. But I would like to view the relation between crimes and all resolutions.
+all. But I would like to view the relation between each crime and each
+resolution.
 
-```{r Category vs Resolutions heatmap, echo=FALSE}
+```{r Category vs Resolutions heatmap, echo=FALSE, warnings=FALSE}
 ggplot(data = crimes, aes(x = Resolution, y = Category)) +
   geom_bin2d() +
   scale_fill_gradient(low = "white", high = "blue", trans = "log10") +
@@ -412,7 +436,7 @@ Person and Runaway. Also, Psychopatic Case has an unusual distribution.
 
 I'd like to see the distribution of Categories by Districts.
 
-```{r Category vs District, echo=FALSE}
+```{r Category vs District, echo=FALSE, warnings=FALSE}
 # I'll select only the most common categories for this plot
 #
 # I'll create a function to filter for most common n categories, because
@@ -457,7 +481,7 @@ categories and resolutions across districts.
 
 ## Categories over time
 
-```{r Categories time, echo=FALSE}
+```{r Categories time, echo=FALSE, warnings=FALSE}
 categ_time <- crimes[top_categories(6),]
 categ_time$DateTime <- as.Date(round(categ_time$DateTime, units = "days"))
 categ_time <- categ_time %>%
@@ -477,7 +501,8 @@ ggplot(categ_time, aes(x = dt, y = cnt, color = Category)) +
   geom_smooth() +
   ggtitle("Crime categories over time") +
   xlab("Time") +
-  ylab("Monthly totals")
+  ylab("Monthly totals")+
+  coord_fixed(ratio = 0.9)
 ```
 
 We can see interesting patterns here. Theft increased steadily starting from
@@ -491,7 +516,7 @@ Offenses. Non-Criminal increased from 2010 and Drug/Narcotic decreased.
 
 I would like to visualize the most common crimes by district.
 
-```{r, Crimes by District Over Time, echo=FALSE}
+```{r Crimes by District Over Time, echo=FALSE, warnings=FALSE}
 categ_time <- crimes[top_categories(6),]
 categ_time$DateTime <- as.Date(round(categ_time$DateTime, units = "days"))
 categ_time <- categ_time %>%
@@ -529,7 +554,7 @@ I saw how the most common crimes evolved over time, now I'd like to see where
 those crimes happen more often, and whether the center of some crimes moved
 over time.
 
-```{r Density of Most Common Crimes, echo=FALSE}
+```{r Density of Most Common Crimes, echo=FALSE, warnings=FALSE}
 
 ggmap(SFMap) +
   stat_density2d(
@@ -539,13 +564,15 @@ ggmap(SFMap) +
     geom = "polygon",
     data = crimes[top_categories(6),]) +
   scale_fill_distiller(palette = "Spectral") +
-  facet_wrap( ~ Category, ncol = 2)
+  facet_wrap( ~ Category, ncol = 2) +
+  ggtitle("Heat map of most common crimes") +
+  map_theme
 ```
 
 It seems that vehicles are stolen from anywhere in the city. For drugs on the
 other hand, it looks like there are a few large centers.
 
-```{r Drugs heatmap, echo=FALSE}
+```{r Drugs heatmap, echo=FALSE, warnings=FALSE}
 ggmap(SFMap) +
   stat_density2d(
     aes(x = X, y = Y, fill = ..level..),
@@ -553,13 +580,15 @@ ggmap(SFMap) +
     geom = "polygon",
     data = filter(crimes, Category == "DRUG/NARCOTIC"),
     alpha = .5) +
-  scale_fill_distiller(palette = "Spectral")
+  scale_fill_distiller(palette = "Spectral") +
+  ggtitle("Drug Activity Heat Map") +
+  map_theme
 ```
 
 Indeed, there is a large center and a few smaller centers. I'll plot also all
 drug related events as points, with very thin colors, for comparison:
 
-```{r Drugs points, echo=FALSE}
+```{r Drugs points, echo=FALSE, warnings=FALSE}
 ggmap(SFMap) +
   geom_point(
     aes(x = X, y = Y),
@@ -568,30 +597,33 @@ ggmap(SFMap) +
     alpha = 0.01
   ) +
   ggtitle("All Drug Crimes") +
-  theme(legend.position="none")
+  theme(legend.position="none") +
+  map_theme
 ```
 
 So there is activity everywhere in the city, but on the heat map we can see
 only the areas with really high density of drugs related crimes.
 
-Now I'd like to see if the center moved during the years. I'll start off with
-a yearly sample. I'll plot the heat map for every year.
+Now I'd like to see if the center moved during the years. I'll group the data
+by years, and I'll plot the heat map for every year.
 
-```{r}
-ggmap(SFMap) +
+```{r Drugs Yearly heatmap, echo=FALSE, warnings=FALSE}
+ggmap(SFMap, darken = .3) +
   stat_density2d(
     aes(x = X, y = Y, fill = ..level..),
     alpha = .5,
-    size = 2,
+    n = 200,
+    geom = "polygon",
     data = crimes %>%
       filter(Category == "DRUG/NARCOTIC") %>%
       mutate(Year = year(DateTime))) +
   scale_fill_distiller(palette = "Spectral") +
-  facet_wrap(~ Year, ncol = 4)
+  facet_wrap(~ Year, ncol = 4) +
+  map_theme
 ```
 
 The story this plot is telling is that there are a couple of large drug
-markets, that remained in about the same location. The largest drug market is
+markets, that remained at about the same location. The largest drug market is
 in Tenderloin, followed by Mission, Park and Bayview. The smaller ones seem to
 have expanded, then decreased, then expanded again. Although the number of drug
 incidents decreased in the last years, the events seem to be more dispersed in
@@ -605,7 +637,7 @@ resolved, we saw which crimes are more likely to be resolved one way or
 another, but how did all this changed over time? Did the resolution
 percentage evolved differently in different districts?
 
-```{r Resolution Percentage Time, echo=FALSE}
+```{r Resolution Percentage Time, echo=FALSE, warnings=FALSE}
 
 resolutions_month_district <- crimes %>%
   mutate(year = year(DateTime), month = month(DateTime)) %>%
@@ -649,7 +681,72 @@ most crimes with resolution.
 
 # Final Plots
 
+## First Plot
 
+```{r Final Plot 1, echo=FALSE, warnings=FALSE}
+
+categ_resol <- resol_percentage %>%
+  transmute(cnt, Solved) %>%
+  spread(Solved, cnt) %>%
+  transmute(Category,
+            cnt = yes + no,
+            Percent = 100* yes / (yes + no))
+
+ggplot(data = categ_resol, aes(x = Category, y = cnt, fill = Percent)) +
+  scale_fill_gradientn(limits = c(0,100), 
+                       colors = c('red', 'white', 'blue')) +
+  geom_bar(stat = "identity") +
+  ggtitle("Crime Categories and Percentage of Solved Crimes") +
+  ylab("Count") +
+  coord_flip()
+```
+
+I think this simple plot tells us a lot. We can instantly see which crimes are
+more likely to be resolved, and at the same time see what crimes are most
+frequent. I think this color gradient is good because it makes a clear split 
+at 50%. If the bar is slightly red, we know more crimes are unsolved in that 
+category, if it's slightly blue, we have more of them solved.
+
+## Second Plot
+
+```{r Final Plot 2, echo=FALSE, warnings=FALSE}
+ggplot(data = resolutions_month_district,
+       aes(x = dt, y = 100 * yes / (yes + no))) +
+  geom_line(color = 'blue') +
+  xlab("Date") +
+  ylab("Percentage resolved crimes") +
+  ggtitle("Percentage of crimes that had a resolution over time") +
+  facet_wrap(~ PdDistrict, ncol = 2)
+```
+
+This plot is also simple, yet clear. It shows us the difference between amount
+of crimes that had resolution in different districts, over time.
+
+## Third plot
+
+```{r Final Plot 3, echo=FALSE, warnings=FALSE}
+Tenderloin <- crimes$PdDistrict == "TENDERLOIN"
+TenderloinMap <- get_map(location = c(lon = median(crimes[Tenderloin,]$X), 
+                                      lat = median(crimes[Tenderloin,]$Y)),
+                 zoom = 15, maptype = "roadmap", color = 'bw')
+ggmap(TenderloinMap) +
+  stat_density2d(
+    aes(x = X, y = Y, fill = ..level..),
+    alpha = .4,
+    n = 200,
+    geom = "polygon",
+    data = crimes %>%
+      filter(Category == "DRUG/NARCOTIC") %>%
+      mutate(Year = year(DateTime))) +
+  scale_fill_distiller(palette = "Spectral") +
+  ggtitle("Tenderloin Drugs Heat Map") +
+  map_theme
+```
+
+For the final plot I chosed the heatmap of drug crimes, but I zoomed in on
+Tenderloin, so we can have a look at crimes activity at street level.
+Interesting fact, at the bottom-right corner we can see the address of 
+[SFPOA](http://www.sfpoa.org).
 
 # Reflections
 
@@ -662,16 +759,33 @@ sending the whole data to the plotting library and selecting what to plot and
 how is useful most of the time, because it allows you to quickly create
 relatively complex plots, but at other times it's confusing because I'm not
 sure if a plot can be created with ggplot directly or I need to process the
-data first. But I assume this gets easier after more practice.
+data first. But I assume this gets easier after more practice. The approach
+I had until now was to prepare the data first (for example using matplotlib
+in python).
 
-The most puzzleing surprise I encountered was when I found that the address
+The most puzzling surprise I encountered was when I found that the address
 where most crimes were reported was the address of the San Francisco Police
-Officers Association. And not only it is in top of the list, but there are
+Officers Association. And not only it is at top of the list, but there are
 over 4 times more crimes reported at that address than there are at the next
 most common address. I checked those addresses on Google Street View, but they
 looked like regular city streets. I suspect that some crimes that had no
 address reported were automatically assigned to this address, but I can't test
 this hypothesis. Otherwise it would be quite odd that on average 10 crimes
 happen daily just accross the street from the police office. I assume there are
-always police officers around there, so it's easy for them to interveine if
+always police officers around there, so it's easy for them to intervene if
 something is happening there.
+
+# Summary and Future Work
+
+Overall the experience of going through this analysis was very interesting. I
+think this analysis sheds some light on what crimes are most common, where they
+are most common, what types of crimes are most likely to be resolved.
+
+I think further research can be made by investigating more specific trends, 
+by using a similar approach I used for Drug crimes. This analysis shows 
+a mile high overview of the data, but there is definetly a lot more hidden
+information in this data set. For instance, we may be interested in all 
+crimes involving teenagers (those cases are labeled with *juvenile* either 
+in resolutions or in descriptions). We can then explore different categories
+and trends within this subset of the data. We may be interested only in vehicle
+thefts, or violent crimes.
