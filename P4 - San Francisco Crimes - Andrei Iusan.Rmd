@@ -16,13 +16,13 @@ library(ggmap)
 library(dplyr)
 library(tidyr)
 library(lubridate)
+options(scipen=1000)
 ```
 
 ```{r Loading Data}
 # Load the Data
 crimes <- read.csv("SFPD_Incidents_-_from_1_January_2003.csv",
                    header = TRUE, quote = "\"")
-options(scipen=1000)
 ```
 
 # About the Data
